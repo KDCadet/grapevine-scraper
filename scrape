@@ -4,4 +4,4 @@
 
 logFile=/home/kdcadet/code/grapevine-scraper/log
 date >> $logFile
-python /home/kdcadet/code/grapevine-scraper/scraper.py >> $logFile
+python /home/kdcadet/code/grapevine-scraper/scraper.py >> $logFile 2>> $logFile

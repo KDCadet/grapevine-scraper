@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 import sys
 from datetime import datetime
+import os
 
 
 headers = {
@@ -23,9 +24,10 @@ headers = {
 }
 
 def login():
-    with open('user.name', 'r') as f:
+    scriptDir = Path(os.path.realpath(__file__)).parent
+    with open(scriptDir / 'user.name', 'r') as f:
         userName = f.readline()
-    with open('user.pass', 'r') as f:
+    with open(scriptDir / 'user.pass', 'r') as f:
         userPass = f.readline()
 
     data = {
