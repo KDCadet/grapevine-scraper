@@ -1,6 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+from pathlib import Path
+import sys
+from datetime import datetime
+
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0',
@@ -116,6 +120,12 @@ class Story():
 
 
 def main():
+    # options
+    outDir = Path('/home/kdcadet/nc/aa/grapevine')
+    #outDir = Path('/home/kdcadet/code/grapevine-scraper/out')
+
+
+    # http session
     try:
         global s
         s = login()
@@ -125,16 +135,24 @@ def main():
         # issueTitle, pubDate = read_issue(s, storyURLs[0])
         issue = Issue(storyURLs[0])
         issue.read()
-        issue.write(f'out/readme.md')
+        outDir = outDir / (datetime.strptime(issue.pubDate, '%B %Y').strftime('%Y%m') + '-' + issue.title.replace(' ', '_'))
+        # if already exists, exit and don't continue
+        if outDir.exists():
+            print(f'The current issue is already at {outDir}.')
+        else:
+            outDir.mkdir(parents=True, exist_ok=True)
+            issue.write(outDir / 'readme.md')
 
-        for i, url in enumerate(storyURLs):
-            story = Story(url)
-            story.read()
-            fn = str(i).zfill(2) + '-' + story.title.replace(' ', '_') + '.md'
-            story.write(f'out/{fn}')
+            for i, url in enumerate(storyURLs):
+                story = Story(url)
+                story.read()
+                fn = str(i).zfill(2) + '-' + story.title.replace(' ', '_') + '.md'
+                story.write(outDir / fn)
+
+            print(f'Finished downloading the {issue.pubDate} issue to {outDir}')
 
     finally:
-        print('closing session')
+        print('Closing session.')
         s.close()
 
 

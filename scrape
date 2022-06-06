@@ -1,0 +1,7 @@
+#!/bin/sh
+
+. /home/kdcadet/venv/grapevine-scraper/bin/activate
+
+logFile=/home/kdcadet/code/grapevine-scraper/log
+date >> $logFile
+python /home/kdcadet/code/grapevine-scraper/scraper.py >> $logFile
