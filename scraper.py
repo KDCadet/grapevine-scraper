@@ -34,11 +34,10 @@ def login():
 
     s = requests.session()
     response = s.post('https://www.aagrapevine.org/user/login', headers=headers, data=data)
-
     return s
 
 
-def get_articles(s):
+def get_stories():
     page = s.get('https://www.aagrapevine.org/magazine')#, cookies=cookies, headers=headers)
 
     soup = BeautifulSoup(page.content, "html.parser")
@@ -54,59 +53,89 @@ def get_articles(s):
         article_url = article_url[:i1]
         article_urls.append(article_url)
 
-    return s, article_urls
+    return article_urls
 
 
-def read_issue(s, url):
-    page = s.get(url)
+class Issue():
+    def __init__(self, url):
+        self.url = url
 
-    soup = BeautifulSoup(page.content, "html.parser")
+
+    def read(self):
+        page = s.get(self.url)
+
+        soup = BeautifulSoup(page.content, "html.parser")
+        
+        #title = soup.find_all('h1')[1].find('div').get_text()
+        #pubDate = soup.find_all('div', class_='field field--name-name field--type-string field--label-hidden field__item')
+
+        result =soup.find('div', class_='article-publication-date').get_text().strip()
+        x = re.search(r'[a-zA-Z]+ [0-9]{4}', result)
+        self.pubDate = x.group()
+
+        result = result[x.end():].strip()
+        self.title = x = re.search(r'[a-zA-Z0-9][a-zA-Z0-9 ]+[^\n]', result).group()
+
+    def write(self, fn):
+        with open(fn, 'w') as f:
+            f.write('# ' + self.title + '  \n' + self.pubDate)
+
+
+class Story():
+    def __init__(self, url):
+        self.url = url
+
+    def read(self):
+        page = s.get(self.url)
+
+        soup = BeautifulSoup(page.content, "html.parser")
+
+        # get article title
+        self.title = soup.find('h1').get_text().strip()
+
+        # get article author
+        x = soup.find('div', class_='article-author').get_text()
+        self.author = x[x.find('By:') + 4:x.find('|')].strip() + ' | ' + x[x.find('|') + 1:].strip()
+
+        # subtitle
+        self.subtitle = soup.find('div', class_='article-subtitle').get_text().strip()
+        
+        # parse article body
+        body_raw = soup.find_all(class_='clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item')[2].find_all('p')
+        self.body = ''
+        for i, p in enumerate(body_raw):
+            if i > 0:
+                self.body += '  \n\n' + p.get_text().strip()
+            else:
+                self.body += p.get_text().strip()
     
-    #title = soup.find_all('h1')[1].find('div').get_text()
-    #pubDate = soup.find_all('div', class_='field field--name-name field--type-string field--label-hidden field__item')
 
-    result =soup.find('div', class_='article-publication-date').get_text().strip()
-    x = re.search(r'[a-zA-Z]+ [0-9]{4}', result)
-    pubDate = x.group()
-
-    result = result[x.end():].strip()
-    title = x = re.search(r'[a-zA-Z0-9][a-zA-Z0-9 ]+[^\n]', result).group()
-
-    return title, pubDate
-
-
-def read_article(s, url):
-    page = s.get(url)
-
-    soup = BeautifulSoup(page.content, "html.parser")
-
-    # get article title
-    title = soup.find('h1').get_text().strip()
-
-    # get article author
-    print(soup.find('div', class_='article-author'))
-
-    # parse article body
-    results = soup.find_all(class_='clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item')
-
-    body_raw = results[2].find_all('p')
-    body = ''
-    for p in body_raw:
-        body += '  \n\n' + str(p)[15:-18]
+    def write(self, outputFile):
+        with open(outputFile, 'w') as f:
+            f.write('# ' + self.title + '  \n' + self.author + '  \n' + self.subtitle + '  \n\n' + self.body)
 
 
 def main():
-    s = login()
+    try:
+        global s
+        s = login()
 
-    s, articleURLs = get_articles(s)
+        storyURLs = get_stories()
 
-    title, pubDate = read_issue(s, articleURLs[0])
+        # issueTitle, pubDate = read_issue(s, storyURLs[0])
+        issue = Issue(storyURLs[0])
+        issue.read()
+        issue.write(f'out/readme.md')
 
+        for i, url in enumerate(storyURLs):
+            story = Story(url)
+            story.read()
+            fn = str(i).zfill(2) + '-' + story.title.replace(' ', '_') + '.md'
+            story.write(f'out/{fn}')
 
-    for article_url in articleURLs[0:2]:
-        read_article(s, article_url)
-
-    s.close()
+    finally:
+        print('closing session')
+        s.close()
 
 
 if __name__ == '__main__':
