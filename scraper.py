@@ -124,8 +124,8 @@ class Story():
 def main():
     # options
     outDir = Path('/home/kdcadet/nc/aa/grapevine')
-    #outDir = Path('/home/kdcadet/code/grapevine-scraper/out')
-
+    if not outDir.exists():
+        outDir = Path(os.path.realpath(__file__)).parent / 'output'
 
     # http session
     try:
